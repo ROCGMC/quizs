@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>測驗中心</title>
+    <title>題測系統 - 114-2-1 物理</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -24,24 +24,43 @@
             padding: 30px;
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 450px;
-            transition: all 0.3s ease;
+            width: 95%;
+            max-width: 600px;
         }
-        h2 { color: #1e293b; margin-top: 0; }
-        input[type="text"] {
-            width: 100%;
-            padding: 14px;
-            box-sizing: border-box;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            margin: 20px 0;
-            text-align: center;
-            outline: none;
+        h2 { color: #1e293b; margin-top: 0; text-align: center; }
+        
+        /* 測驗介面 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 15px;
         }
-        input:focus { border-color: var(--primary); }
-        button {
+        .question-text {
+            font-size: 1.15rem;
+            font-weight: bold;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+        .option {
+            padding: 15px;
+            border: 2px solid #f1f5f9;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background: #f8fafc;
+            transition: all 0.2s;
+        }
+        .option:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .option.selected {
+            background: #dbeafe;
+            border-color: var(--primary);
+            color: #1e40af;
+            font-weight: bold;
+        }
+        .nav-btn {
             background: var(--primary);
             color: white;
             border: none;
@@ -51,145 +70,128 @@
             font-weight: bold;
             cursor: pointer;
             width: 100%;
+            margin-top: 20px;
         }
-        button:hover { opacity: 0.9; }
-
-        /* 測驗介面 */
-        #quiz-area { display: none; }
-        .option {
-            padding: 15px;
-            border: 2px solid #f1f5f9;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            background: #f8fafc;
-            transition: 0.2s;
+        .nav-btn:hover { opacity: 0.9; }
+        .score-display {
+            text-align: center;
         }
-        .option:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        .option.selected {
-            background: #dbeafe;
-            border-color: var(--primary);
-            color: #1e40af;
-            font-weight: bold;
+        .score-num {
+            font-size: 4rem;
+            color: var(--primary);
+            font-weight: 900;
+            margin: 20px 0;
         }
-        #msg { color: #ef4444; font-size: 0.9rem; margin-top: 10px; min-height: 1.2rem; }
     </style>
 </head>
 <body>
 
-<div class="container" id="main-card">
-    <div id="login-area">
-        <h2>RMS 題測系統</h2>
-        <p style="color: #64748b;">請輸入測驗代碼以獲取試題</p>
-        <input type="text" id="quiz-input" placeholder="例如：12345" autocomplete="off">
-        <button onclick="startLoad()">進入測驗</button>
-        <div id="msg"></div>
+<div class="container" id="quiz-container">
+    <div class="status-bar">
+        <span>114-2-1 物理測驗</span>
+        <span id="progress">1 / 38</span>
     </div>
-
-    <div id="quiz-area">
-        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b;">
-            <span id="quiz-title-text"></span>
-            <span id="progress-text"></span>
-        </div>
-        <h3 id="question-text" style="margin: 20px 0;"></h3>
-        <div id="options-container"></div>
-        <button id="next-btn" style="margin-top: 20px;" onclick="nextStep()">下一題</button>
-    </div>
+    <div class="question-text" id="q-text">載入中...</div>
+    <div id="options-box"></div>
+    <button class="nav-btn" id="next-btn" onclick="nextStep()">下一題</button>
 </div>
 
 <script>
-    // --- 請修改以下配置 ---
-    const GITHUB_CONFIG = {
-        user: "你的GitHub帳號",
-        repo: "你的倉庫名稱",
-        branch: "main" // 或是 master
-    };
+    const quizData = [
+        {q: "將繩子固定在牆上開始甩動，1 秒內製造 1.5 個波形，請問繩波的速度為多少公尺/秒？", a: ["0.75", "1.5", "2", "5"], c: 2},
+        {q: "承上題，P 點此時的振動方向為何？", a: ["上", "下", "左", "右"], c: 1},
+        {q: "將一脈衝波自線密度較小的一繩傳向線密度較大的另一繩，則其反射波與透射波的形狀與位置，下列哪一圖形較正確？", a: ["(A) 反射波同相", "(B) 反射波反相且振幅變小", "(C) 透射波速度變快", "(D) 反射波反相且位移在原繩"], c: 3},
+        {q: "當使用者戴上降噪耳機之後開啟開關的瞬間，會明顯感受到周遭的雜音不見了，其原理是利用聲波的？", a: ["反射", "折射", "繞射", "干涉"], c: 3},
+        {q: "大象溝通會發出 20 Hz 以下的聲下波，人耳是無法察覺的，有關聲波的敘述何者正確？", a: ["人耳可聽範圍 200~200000 Hz", "超聲波速比可聽波速快", "聲下波速比人說話慢", "聲下波波長比人說話長"], c: 3},
+        {q: "在公車上滑手機，聽到垃圾車音樂比平常還高，代表公車與垃圾車的關係？", a: ["正在靠近", "正在遠離", "保持靜止", "無法判斷"], c: 0},
+        {q: "關於「波前」的敘述，下列何者正確？", a: ["波傳遞方向與波前平行", "波傳遞方向與波前垂直", "兩波前間距離即為振幅", "波前即為波谷連線"], c: 1},
+        {q: "「波前上的每一點都可以視為新的點波源」此觀點由哪位科學家提出？", a: ["惠更斯", "牛頓", "都卜勒", "愛因斯坦"], c: 0},
+        {q: "當水波由深水區進入淺水區時，若非垂直入射，則會觀察到？", a: ["入射角大於折射角，波速變慢", "入射角小於折射角，波速變慢", "入射角大於折射角，波速變快", "入射角小於折射角，波速變快"], c: 0},
+        {q: "關於水波干涉的敘述，何者錯誤？", a: ["利用波疊加原理可解釋", "建設性干涉振幅變大", "破壞性干涉代表水波消失", "破壞性干涉振幅變小"], c: 2},
+        {q: "軍隊通過橋樑改為散步走，是為了打亂腳步頻率以避免？", a: ["官兵太累", "橋面踩壞", "產生共振導致倒塌", "躲避偵查"], c: 2},
+        {q: "「空山不見人，但聞人語響」主要是因為聲波產生了？", a: ["反射", "折射", "繞射", "干涉"], c: 2},
+        {q: "撥打電話聽聲音就知道是不是同學本人，憑藉的是？", a: ["音色", "響度", "音調", "分貝"], c: 0},
+        {q: "星體「紅移」現象代表星體正在遠離地球，此時觀測到的電磁波？", a: ["波長變短", "波長變長", "波速變快", "振幅變大"], c: 1},
+        {q: "球場的「波浪舞」依波動分類應屬於？", a: ["橫波", "縱波", "非力學波", "電磁波"], c: 0},
+        {q: "有關波動的敘述，下列何者錯誤？", a: ["有反射折射現象", "都必須要有介質才能傳遞", "不傳遞質量只傳能量", "光是波動現象"], c: 1},
+        {q: "在教室不同位置都能看見黑板字，主因是光產生了？", a: ["折射", "鏡面反射", "繞射", "漫射"], c: 3},
+        {q: "關於平面鏡成像，何者錯誤？", a: ["物距等於像距", "距離愈遠成像愈小", "為正立虛像", "左右相反"], c: 1},
+        {q: "小明看凹面鏡發現像變大且頭下腳上顛倒，他位於？", a: ["1~2倍焦距間", "焦點內", "2倍焦距外", "焦點上"], c: 0},
+        {q: "承上題，若改看凸面鏡，則影像變成？", a: ["倒立放大實像", "倒立縮小實像", "正立放大虛像", "正立縮小虛像"], c: 3},
+        {q: "反射式天文望遠鏡中，裝設什麼來收集大量光線？", a: ["凸透鏡", "凸面鏡", "凹面鏡", "凹透鏡"], c: 2},
+        {q: "真空折射率1，水折射率4/3，真空速V1，水速V2，則V1:V2=？", a: ["3:4", "4:3", "9:16", "16:9"], c: 1},
+        {q: "貓看水中的魚，魚也看貓，何者正確？", a: ["貓看魚變深", "貓看魚變深、魚看貓變遠", "貓看魚變淺、魚看貓變遠", "貓看魚變淺、魚看貓變近"], c: 2},
+        {q: "彩虹的形成與哪些特性有關？(甲)反射 (乙)折射 (丙)干涉 (丁)繞射", a: ["甲乙", "甲丙", "乙丁", "丙丁"], c: 0},
+        {q: "近視是因為光線聚焦在視網膜前，應配戴？", a: ["凸面鏡", "凸透鏡", "凹面鏡", "凹透鏡"], c: 3},
+        {q: "下列哪一個光學儀器沒有使用到凸透鏡？", a: ["老花眼鏡", "光學顯微鏡", "山路轉彎鏡", "望遠鏡"], c: 2},
+        {q: "下列哪一個現象是來自光的「波動特性」？", a: ["三稜鏡色散", "肥皂泡泡彩色", "日落太陽變紅", "湖面倒影"], c: 1},
+        {q: "光的干涉實驗中，改變亮紋寬度的方法「不包括」？", a: ["改變頻率", "改變雙狹縫間距", "改變屏幕距離", "改變亮度"], c: 3},
+        {q: "凹面鏡「不會」出現哪種成像？", a: ["倒立放大實像", "正立縮小虛像", "正立放大虛像", "倒立縮小實像"], c: 1},
+        {q: "衛星發射訊號將訊號源放在焦點上經反射平行發出，應用了？", a: ["凸透鏡", "凸面鏡", "凹透鏡", "凹面鏡"], c: 3},
+        {q: "內視鏡或光纖網路傳輸是利用？", a: ["光的干涉", "光的疊加", "光的全反射", "光的直進性"], c: 2},
+        {q: "凸透鏡成像後，將透鏡下半部塗黑，屏幕上的像會？", a: ["消失", "變正立", "像不改變只變暗", "剩下一半"], c: 2},
+        {q: "水族館圓弧玻璃看魚有放大效果，原理類似？", a: ["凸透鏡", "凹透鏡", "凹面鏡", "凸面鏡"], c: 0},
+        {q: "下列有關折射率的概念何者錯誤？", a: ["折射率愈大光速愈慢", "小進大偏向法線", "光密介質指折射率小", "真空折射率最小"], c: 2},
+        {q: "毛玻璃能透光但影像扭曲，主因是？", a: ["表面不平整使折射方向不同", "直接反射", "折射率不均", "產生色散"], c: 0},
+        {q: "陽光通過三稜鏡色散，原因是？", a: ["各色光折射率不同", "光被染色", "改變波長", "材質特殊"], c: 0},
+        {q: "人眼變焦是利用哪種方式？", a: ["改變折射率", "改變水晶體曲率", "改變視網膜距離", "神經修正"], c: 1},
+        {q: "下列何者「不是」因為光的干涉產生的彩色？", a: ["肥皂泡泡", "水面油汙", "光碟背面", "彩虹"], c: 3}
+    ];
 
-    let quizData = null;
     let currentIdx = 0;
-    let userAnswers = [];
+    let answers = new Array(quizData.length).fill(null);
 
-    async function startLoad() {
-        const code = document.getElementById('quiz-input').value.trim();
-        const msg = document.getElementById('msg');
-        if (!code) return;
-
-        msg.style.color = "#2563eb";
-        msg.innerText = "正在連線至 GitHub 倉庫...";
-
-        const url = `https://raw.githubusercontent.com/${GITHUB_CONFIG.user}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${code}.json`;
-
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("找不到檔案 (代碼錯誤)");
-
-            quizData = await response.json();
-            
-            // 進入測驗狀態
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('quiz-area').style.display = 'block';
-            document.getElementById('quiz-title-text').innerText = quizData.title || "線上測試";
-            
-            renderQuestion();
-        } catch (err) {
-            msg.style.color = "#ef4444";
-            msg.innerText = err.message;
-        }
-    }
-
-    function renderQuestion() {
-        const q = quizData.questions[currentIdx];
-        document.getElementById('progress-text').innerText = `${currentIdx + 1} / ${quizData.questions.length}`;
-        document.getElementById('question-text').innerText = q.q;
+    function render() {
+        const q = quizData[currentIdx];
+        document.getElementById('progress').innerText = `${currentIdx + 1} / ${quizData.length}`;
+        document.getElementById('q-text').innerText = `${currentIdx + 1}. ${q.q}`;
         
-        const container = document.getElementById('options-container');
-        container.innerHTML = '';
-
+        const box = document.getElementById('options-box');
+        box.innerHTML = '';
         q.a.forEach((txt, i) => {
             const div = document.createElement('div');
-            div.className = `option ${userAnswers[currentIdx] === i ? 'selected' : ''}`;
-            div.innerText = txt;
+            div.className = `option ${answers[currentIdx] === i ? 'selected' : ''}`;
+            div.innerText = `${String.fromCharCode(65 + i)}. ${txt}`;
             div.onclick = () => {
-                userAnswers[currentIdx] = i;
-                renderQuestion();
+                answers[currentIdx] = i;
+                render();
             };
-            container.appendChild(div);
+            box.appendChild(div);
         });
 
         document.getElementById('next-btn').innerText = 
-            currentIdx === quizData.questions.length - 1 ? "完成並交卷" : "下一題";
+            currentIdx === quizData.length - 1 ? "完成交卷" : "下一題";
     }
 
     function nextStep() {
-        if (userAnswers[currentIdx] === undefined) return alert("請選擇答案");
-
-        if (currentIdx < quizData.questions.length - 1) {
+        if (answers[currentIdx] === null) {
+            alert("請選擇答案！");
+            return;
+        }
+        if (currentIdx < quizData.length - 1) {
             currentIdx++;
-            renderQuestion();
+            render();
         } else {
-            finishQuiz();
+            showResult();
         }
     }
 
-    function finishQuiz() {
-        let score = 0;
-        quizData.questions.forEach((q, i) => {
-            if (userAnswers[i] === q.c) score++;
-        });
-
-        const finalScore = Math.round((score / quizData.questions.length) * 100);
-        const card = document.getElementById('main-card');
-        card.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <h2 style="margin-bottom: 10px;">測驗結算</h2>
-                <div style="font-size: 4rem; color: var(--primary); font-weight: 900; margin: 15px 0;">${finalScore}</div>
-                <p>得分：${finalScore} / 100</p>
-                <p>答對：${score} 題 / 總計：${quizData.questions.length} 題</p>
-                <button style="margin-top: 20px;" onclick="location.reload()">返回系統</button>
+    function showResult() {
+        let correct = 0;
+        quizData.forEach((q, i) => { if (answers[i] === q.c) correct++; });
+        const score = Math.round((correct / quizData.length) * 100);
+        
+        document.getElementById('quiz-container').innerHTML = `
+            <div class="score-display">
+                <h2>測驗結算</h2>
+                <div class="score-num">${score}</div>
+                <p>正確題數：${correct} / ${quizData.length}</p>
+                <button class="nav-btn" onclick="location.reload()">重新測驗</button>
             </div>
         `;
     }
-</script>
 
+    render();
+</script>
 </body>
 </html>
