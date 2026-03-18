@@ -3,108 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RMS 題測系統 - 認證版</title>
+    <title>測驗中心</title>
     <style>
         :root {
-            --primary: #2563eb;
-            --bg: #f1f5f9;
+            --primary-color: #2563eb;
+            --bg-color: #f1f5f9;
         }
-
-        body { font-family: sans-serif; background: var(--bg); margin: 0; }
-
-        /* 啟用碼遮罩層 */
-        #auth-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.95);
+        body {
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
-            color: white;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
             text-align: center;
         }
-
-        .auth-box {
-            background: #1e293b;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-
         input[type="text"] {
+            width: 100%;
             padding: 12px;
-            width: 200px;
-            border-radius: 5px;
-            border: none;
-            margin-bottom: 15px;
+            box-sizing: border-box;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
             font-size: 1.1rem;
+            margin-bottom: 20px;
             text-align: center;
         }
-
-        .btn-verify {
-            background: var(--primary);
+        button {
+            background: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
             cursor: pointer;
-            display: block;
-            margin: 0 auto;
+            width: 100%;
+            transition: background 0.2s;
         }
-
-        /* 主程式區域 (預設隱藏) */
-        #main-content {
-            display: none;
-            padding: 50px;
-            text-align: center;
+        button:hover { background: #1d4ed8; }
+        
+        /* 測驗中樣式 */
+        #quiz-section { display: none; text-align: left; }
+        .option {
+            padding: 15px;
+            border: 2px solid #edf2f7;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
         }
+        .option:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .option.active {
+            background: #dbeafe;
+            border-color: var(--primary-color);
+            font-weight: bold;
+        }
+        #error-msg { color: #ef4444; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <div id="auth-overlay">
-        <div class="auth-box">
-            <h2>系統已鎖定</h2>
-            <p>請輸入啟用碼以繼續</p>
-            <input type="text" id="auth-code" placeholder="輸入代碼...">
-            <button class="btn-verify" onclick="verifyCode()">驗證並進入</button>
-            <p id="msg" style="color: #ff4444; margin-top: 10px;"></p>
+    <div class="card">
+        <div id="login-section">
+            <h2>進入測驗</h2>
+            <p>請輸入測驗代碼 (例如: 12345)</p>
+            <input type="text" id="quiz-code" placeholder="輸入代碼..." autocomplete="off">
+            <button onclick="loadQuiz()">載入試卷</button>
+            <div id="error-msg"></div>
+        </div>
+
+        <div id="quiz-section">
+            <h2 id="quiz-title">載入中...</h2>
+            <div id="q-progress" style="color: #64748b; margin-bottom: 10px;"></div>
+            <div id="question-text" style="font-size: 1.2rem; margin-bottom: 20px; font-weight: bold;"></div>
+            <div id="options-box"></div>
+            <button id="next-btn" style="margin-top: 20px;" onclick="handleNext()">下一題</button>
         </div>
     </div>
 
-    <div id="main-content">
-        <h1>歡迎進入題測中心</h1>
-        <p>驗證成功，題目加載中...</p>
-        </div>
-
     <script>
-        // 改成你的 GitHub Raw JSON 網址
-        const JSON_URL = 'https://raw.githubusercontent.com/你的帳號/你的倉庫/main/config.json';
+        // 配置：請更換為你的 GitHub 使用者名稱與儲存庫
+        const GITHUB_BASE = "https://raw.githubusercontent.com/你的帳號/你的倉庫/main/";
 
-        async function verifyCode() {
-            const inputCode = document.getElementById('auth-code').value;
-            const msg = document.getElementById('msg');
-            msg.innerText = "驗證中...";
+        let quizData = null;
+        let currentIdx = 0;
+        let userAnswers = [];
 
+        async function loadQuiz() {
+            const code = document.getElementById('quiz-code').value.trim();
+            const errorElement = document.getElementById('error-msg');
+            if (!code) return;
+
+            errorElement.innerText = "讀取中...";
+            
             try {
-                // 從 GitHub 抓取資料
-                const response = await fetch(JSON_URL);
-                if (!response.ok) throw new Error("無法連接驗證伺服器");
+                // 拼接網址，抓取像是 12345.json 的檔案
+                const response = await fetch(`${GITHUB_BASE}${code}.json`);
+                if (!response.ok) throw new Error("找不到該測驗代碼的檔案");
+
+                quizData = await response.json();
                 
-                const data = await response.json();
+                // 切換介面
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('quiz-section').style.display = 'block';
+                document.getElementById('quiz-title').innerText = quizData.title;
                 
-                // 假設 JSON 格式為 { "active_codes": ["CODE123", "RMS888"] }
-                if (data.active_codes.includes(inputCode)) {
-                    document.getElementById('auth-overlay').style.display = 'none';
-                    document.getElementById('main-content').style.display = 'block';
-                    alert("驗證成功！");
-                } else {
-                    msg.innerText = "啟用碼錯誤或已過期";
-                }
-            } catch (error) {
-                msg.innerText = "錯誤: " + error.message;
+                showQuestion();
+            } catch (err) {
+                errorElement.innerText = "錯誤: " + err.message;
             }
+        }
+
+        function showQuestion() {
+            const q = quizData.questions[currentIdx];
+            document.getElementById('q-progress').innerText = `題號：${currentIdx + 1} / ${quizData.questions.length}`;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const box = document.getElementById('options-box');
+            box.innerHTML = '';
+
+            q.a.forEach((option, i) => {
+                const div = document.createElement('div');
+                div.className = `option ${userAnswers[currentIdx] === i ? 'active' : ''}`;
+                div.innerText = `${String.fromCharCode(65 + i)}. ${option}`;
+                div.onclick = () => {
+                    userAnswers[currentIdx] = i;
+                    showQuestion();
+                };
+                box.appendChild(div);
+            });
+
+            document.getElementById('next-btn').innerText = 
+                currentIdx === quizData.questions.length - 1 ? "提交測驗" : "下一題";
+        }
+
+        function handleNext() {
+            if (userAnswers[currentIdx] === undefined) {
+                alert("請先選擇一個答案");
+                return;
+            }
+
+            if (currentIdx < quizData.questions.length - 1) {
+                currentIdx++;
+                showQuestion();
+            } else {
+                showScore();
+            }
+        }
+
+        function showScore() {
+            let correct = 0;
+            quizData.questions.forEach((q, i) => {
+                if (userAnswers[i] === q.c) correct++;
+            });
+            
+            const score = Math.round((correct / quizData.questions.length) * 100);
+            const container = document.getElementById('quiz-section');
+            container.innerHTML = `
+                <div style="text-align: center;">
+                    <h2>測驗結束</h2>
+                    <div style="font-size: 4rem; color: var(--primary-color); font-weight: 800; margin: 20px 0;">${score}</div>
+                    <p>得分：${score} / 100</p>
+                    <p>答對題數：${correct} / ${quizData.questions.length}</p>
+                    <button onclick="location.reload()">返回主頁</button>
+                </div>
+            `;
         }
     </script>
 </body>
