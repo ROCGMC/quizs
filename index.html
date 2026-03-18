@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMS 題測系統 - 認證版</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f1f5f9;
+        }
+
+        body { font-family: sans-serif; background: var(--bg); margin: 0; }
+
+        /* 啟用碼遮罩層 */
+        #auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            text-align: center;
+        }
+
+        .auth-box {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            width: 200px;
+            border-radius: 5px;
+            border: none;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .btn-verify {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* 主程式區域 (預設隱藏) */
+        #main-content {
+            display: none;
+            padding: 50px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2>系統已鎖定</h2>
+            <p>請輸入啟用碼以繼續</p>
+            <input type="text" id="auth-code" placeholder="輸入代碼...">
+            <button class="btn-verify" onclick="verifyCode()">驗證並進入</button>
+            <p id="msg" style="color: #ff4444; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <h1>歡迎進入題測中心</h1>
+        <p>驗證成功，題目加載中...</p>
+        </div>
+
+    <script>
+        // 改成你的 GitHub Raw JSON 網址
+        const JSON_URL = 'https://raw.githubusercontent.com/你的帳號/你的倉庫/main/config.json';
+
+        async function verifyCode() {
+            const inputCode = document.getElementById('auth-code').value;
+            const msg = document.getElementById('msg');
+            msg.innerText = "驗證中...";
+
+            try {
+                // 從 GitHub 抓取資料
+                const response = await fetch(JSON_URL);
+                if (!response.ok) throw new Error("無法連接驗證伺服器");
+                
+                const data = await response.json();
+                
+                // 假設 JSON 格式為 { "active_codes": ["CODE123", "RMS888"] }
+                if (data.active_codes.includes(inputCode)) {
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    alert("驗證成功！");
+                } else {
+                    msg.innerText = "啟用碼錯誤或已過期";
+                }
+            } catch (error) {
+                msg.innerText = "錯誤: " + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
