@@ -3,85 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>題測系統 - 114-2-1 物理</title>
+    <title>RMS 題測系統 - 114-2-1 物理 (顯示正確答案版)</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f1f5f9;
-            --card-bg: #ffffff;
+        :root { 
+            --primary: #2563eb; --bg: #f1f5f9; --card-bg: #ffffff; 
+            --success: #10b981; --danger: #ef4444; --text: #1e293b;
         }
-        body {
-            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            width: 95%;
-            max-width: 600px;
-        }
-        h2 { color: #1e293b; margin-top: 0; text-align: center; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background-color: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 95%; max-width: 600px; }
+        .status-bar { display: flex; justify-content: space-between; font-size: 0.9rem; color: #64748b; margin-bottom: 15px; }
+        .question-text { font-size: 1.15rem; font-weight: bold; line-height: 1.5; margin-bottom: 20px; color: var(--text); }
         
-        /* 測驗介面 */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            color: #64748b;
-            margin-bottom: 15px;
-        }
-        .question-text {
-            font-size: 1.15rem;
-            font-weight: bold;
-            line-height: 1.5;
-            margin-bottom: 20px;
-            color: #1e293b;
-        }
-        .option {
-            padding: 15px;
-            border: 2px solid #f1f5f9;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            background: #f8fafc;
-            transition: all 0.2s;
-        }
-        .option:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        .option.selected {
-            background: #dbeafe;
-            border-color: var(--primary);
-            color: #1e40af;
-            font-weight: bold;
-        }
-        .nav-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .nav-btn:hover { opacity: 0.9; }
-        .score-display {
-            text-align: center;
-        }
-        .score-num {
-            font-size: 4rem;
-            color: var(--primary);
-            font-weight: 900;
-            margin: 20px 0;
-        }
+        .option { padding: 15px; border: 2px solid #f1f5f9; border-radius: 12px; margin-bottom: 10px; cursor: pointer; background: #f8fafc; transition: 0.2s; position: relative; }
+        .option:hover { background: #f1f5f9; }
+        
+        /* 選項狀態 */
+        .option.selected { border-color: var(--primary); background: #eff6ff; }
+        .option.correct { background: #dcfce7 !important; border-color: var(--success) !important; color: #166534; font-weight: bold; }
+        .option.wrong { background: #fee2e2 !important; border-color: var(--danger) !important; color: #991b1b; }
+        
+        .nav-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .nav-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+        
+        /* 結算頁面 */
+        .score-num { font-size: 4rem; color: var(--primary); font-weight: 900; margin: 20px 0; text-align: center; }
+        .review-item { border-left: 4px solid var(--danger); padding: 10px 15px; background: #fff1f2; margin-bottom: 15px; border-radius: 4px; text-align: left; }
+        .review-q { font-weight: bold; margin-bottom: 5px; }
+        .review-ans { font-size: 0.9rem; color: #475569; }
     </style>
 </head>
 <body>
@@ -91,104 +39,140 @@
         <span>114-2-1 物理測驗</span>
         <span id="progress">1 / 38</span>
     </div>
-    <div class="question-text" id="q-text">載入中...</div>
+    <div class="question-text" id="q-text"></div>
     <div id="options-box"></div>
-    <button class="nav-btn" id="next-btn" onclick="nextStep()">下一題</button>
+    <button class="nav-btn" id="next-btn" onclick="nextStep()" disabled>請先選擇答案</button>
 </div>
 
 <script>
-    const quizData = [
+    const fullQuiz = [
         {q: "將繩子固定在牆上開始甩動，1 秒內製造 1.5 個波形，請問繩波的速度為多少公尺/秒？", a: ["0.75", "1.5", "2", "5"], c: 2},
         {q: "承上題，P 點此時的振動方向為何？", a: ["上", "下", "左", "右"], c: 1},
-        {q: "將一脈衝波自線密度較小的一繩傳向線密度較大的另一繩，則其反射波與透射波的形狀與位置，下列哪一圖形較正確？", a: ["(A) 反射波同相", "(B) 反射波反相且振幅變小", "(C) 透射波速度變快", "(D) 反射波反相且位移在原繩"], c: 3},
-        {q: "當使用者戴上降噪耳機之後開啟開關的瞬間，會明顯感受到周遭的雜音不見了，其原理是利用聲波的？", a: ["反射", "折射", "繞射", "干涉"], c: 3},
-        {q: "大象溝通會發出 20 Hz 以下的聲下波，人耳是無法察覺的，有關聲波的敘述何者正確？", a: ["人耳可聽範圍 200~200000 Hz", "超聲波速比可聽波速快", "聲下波速比人說話慢", "聲下波波長比人說話長"], c: 3},
-        {q: "在公車上滑手機，聽到垃圾車音樂比平常還高，代表公車與垃圾車的關係？", a: ["正在靠近", "正在遠離", "保持靜止", "無法判斷"], c: 0},
-        {q: "關於「波前」的敘述，下列何者正確？", a: ["波傳遞方向與波前平行", "波傳遞方向與波前垂直", "兩波前間距離即為振幅", "波前即為波谷連線"], c: 1},
-        {q: "「波前上的每一點都可以視為新的點波源」此觀點由哪位科學家提出？", a: ["惠更斯", "牛頓", "都卜勒", "愛因斯坦"], c: 0},
-        {q: "當水波由深水區進入淺水區時，若非垂直入射，則會觀察到？", a: ["入射角大於折射角，波速變慢", "入射角小於折射角，波速變慢", "入射角大於折射角，波速變快", "入射角小於折射角，波速變快"], c: 0},
-        {q: "關於水波干涉的敘述，何者錯誤？", a: ["利用波疊加原理可解釋", "建設性干涉振幅變大", "破壞性干涉代表水波消失", "破壞性干涉振幅變小"], c: 2},
-        {q: "軍隊通過橋樑改為散步走，是為了打亂腳步頻率以避免？", a: ["官兵太累", "橋面踩壞", "產生共振導致倒塌", "躲避偵查"], c: 2},
-        {q: "「空山不見人，但聞人語響」主要是因為聲波產生了？", a: ["反射", "折射", "繞射", "干涉"], c: 2},
-        {q: "撥打電話聽聲音就知道是不是同學本人，憑藉的是？", a: ["音色", "響度", "音調", "分貝"], c: 0},
-        {q: "星體「紅移」現象代表星體正在遠離地球，此時觀測到的電磁波？", a: ["波長變短", "波長變長", "波速變快", "振幅變大"], c: 1},
-        {q: "球場的「波浪舞」依波動分類應屬於？", a: ["橫波", "縱波", "非力學波", "電磁波"], c: 0},
-        {q: "有關波動的敘述，下列何者錯誤？", a: ["有反射折射現象", "都必須要有介質才能傳遞", "不傳遞質量只傳能量", "光是波動現象"], c: 1},
-        {q: "在教室不同位置都能看見黑板字，主因是光產生了？", a: ["折射", "鏡面反射", "繞射", "漫射"], c: 3},
-        {q: "關於平面鏡成像，何者錯誤？", a: ["物距等於像距", "距離愈遠成像愈小", "為正立虛像", "左右相反"], c: 1},
-        {q: "小明看凹面鏡發現像變大且頭下腳上顛倒，他位於？", a: ["1~2倍焦距間", "焦點內", "2倍焦距外", "焦點上"], c: 0},
-        {q: "承上題，若改看凸面鏡，則影像變成？", a: ["倒立放大實像", "倒立縮小實像", "正立放大虛像", "正立縮小虛像"], c: 3},
-        {q: "反射式天文望遠鏡中，裝設什麼來收集大量光線？", a: ["凸透鏡", "凸面鏡", "凹面鏡", "凹透鏡"], c: 2},
-        {q: "真空折射率1，水折射率4/3，真空速V1，水速V2，則V1:V2=？", a: ["3:4", "4:3", "9:16", "16:9"], c: 1},
-        {q: "貓看水中的魚，魚也看貓，何者正確？", a: ["貓看魚變深", "貓看魚變深、魚看貓變遠", "貓看魚變淺、魚看貓變遠", "貓看魚變淺、魚看貓變近"], c: 2},
-        {q: "彩虹的形成與哪些特性有關？(甲)反射 (乙)折射 (丙)干涉 (丁)繞射", a: ["甲乙", "甲丙", "乙丁", "丙丁"], c: 0},
-        {q: "近視是因為光線聚焦在視網膜前，應配戴？", a: ["凸面鏡", "凸透鏡", "凹面鏡", "凹透鏡"], c: 3},
-        {q: "下列哪一個光學儀器沒有使用到凸透鏡？", a: ["老花眼鏡", "光學顯微鏡", "山路轉彎鏡", "望遠鏡"], c: 2},
-        {q: "下列哪一個現象是來自光的「波動特性」？", a: ["三稜鏡色散", "肥皂泡泡彩色", "日落太陽變紅", "湖面倒影"], c: 1},
-        {q: "光的干涉實驗中，改變亮紋寬度的方法「不包括」？", a: ["改變頻率", "改變雙狹縫間距", "改變屏幕距離", "改變亮度"], c: 3},
-        {q: "凹面鏡「不會」出現哪種成像？", a: ["倒立放大實像", "正立縮小虛像", "正立放大虛像", "倒立縮小實像"], c: 1},
-        {q: "衛星發射訊號將訊號源放在焦點上經反射平行發出，應用了？", a: ["凸透鏡", "凸面鏡", "凹透鏡", "凹面鏡"], c: 3},
-        {q: "內視鏡或光纖網路傳輸是利用？", a: ["光的干涉", "光的疊加", "光的全反射", "光的直進性"], c: 2},
-        {q: "凸透鏡成像後，將透鏡下半部塗黑，屏幕上的像會？", a: ["消失", "變正立", "像不改變只變暗", "剩下一半"], c: 2},
-        {q: "水族館圓弧玻璃看魚有放大效果，原理類似？", a: ["凸透鏡", "凹透鏡", "凹面鏡", "凸面鏡"], c: 0},
-        {q: "下列有關折射率的概念何者錯誤？", a: ["折射率愈大光速愈慢", "小進大偏向法線", "光密介質指折射率小", "真空折射率最小"], c: 2},
-        {q: "毛玻璃能透光但影像扭曲，主因是？", a: ["表面不平整使折射方向不同", "直接反射", "折射率不均", "產生色散"], c: 0},
-        {q: "陽光通過三稜鏡色散，原因是？", a: ["各色光折射率不同", "光被染色", "改變波長", "材質特殊"], c: 0},
-        {q: "人眼變焦是利用哪種方式？", a: ["改變折射率", "改變水晶體曲率", "改變視網膜距離", "神經修正"], c: 1},
-        {q: "下列何者「不是」因為光的干涉產生的彩色？", a: ["肥皂泡泡", "水面油汙", "光碟背面", "彩虹"], c: 3}
+        {q: "將一脈衝波自線密度較小的一繩傳向線密度較大的另一繩，其反射波與透射波形狀何者正確？", a: ["(A)", "(B)", "(C)", "(D)"], c: 3},
+        {q: "降噪耳機開啟瞬間雜音不見，原理是利用聲波的？", a: ["反射", "折射", "繞射", "干涉"], c: 3},
+        {q: "有關聲波敘述何者正確？", a: ["範圍 200~200000 Hz", "超聲波速快", "下波速慢", "下波波長長"], c: 3},
+        {q: "聽垃圾車音樂比平常還高，代表公車與垃圾車？", a: ["正在靠近", "正在遠離", "保持靜止", "無法判斷"], c: 0},
+        {q: "關於波前的敘述，何者正確？", a: ["與傳遞方向平行", "與傳遞方向垂直", "間距即振幅", "波谷連線"], c: 1},
+        {q: "「波前上的每一點都可以視為新的點波源」由誰提出？", a: ["惠更斯", "牛頓", "都卜勒", "愛因斯坦"], c: 0},
+        {q: "當水波由深水區進入淺水區時，若非垂直入射？", a: ["入>折，速慢", "入<折，速慢", "入>折，速快", "入<折，速快"], c: 0},
+        {q: "關於水波干涉的敘述，何者錯誤？", a: ["疊加原理", "建設性振幅大", "破壞性代表消失", "破壞性振幅小"], c: 2},
+        {q: "軍隊通過橋樑改為散步走，主要是為了避免？", a: ["官兵太累", "橋面損毀", "產生共振", "躲避偵查"], c: 2},
+        {q: "「空山不見人，但聞人語響」是因為聲波的？", a: ["反射", "折射", "繞射", "干涉"], c: 2},
+        {q: "撥打電話辨識同學聲音是憑藉？", a: ["音色", "響度", "音調", "分貝"], c: 0},
+        {q: "星體紅移現象代表星體正在遠離，電磁波？", a: ["波長短", "波長長", "波速快", "振幅大"], c: 1},
+        {q: "球場波浪舞屬於？", a: ["橫波", "縱波", "非力學波", "電磁波"], c: 0},
+        {q: "波動敘述何者錯誤？", a: ["有反射折射", "都要介質", "不傳質量", "光是波動"], c: 1},
+        {q: "黑板字不同位置都能看見，主因是？", a: ["折射", "鏡面反射", "繞射", "漫射"], c: 3},
+        {q: "平面鏡成像何者錯誤？", a: ["物距=像距", "愈遠像愈小", "正立虛像", "左右相反"], c: 1},
+        {q: "小明看凹面鏡影像變大且頭下腳上，他位於？", a: ["1~2倍焦距", "焦點內", "2倍焦距外", "焦點上"], c: 0},
+        {q: "改看凸面鏡，影像變成？", a: ["倒立大實", "倒立小實", "正立大虛", "正立小虛"], c: 3},
+        {q: "反射式望遠鏡裝設什麼收集光？", a: ["凸透鏡", "凸面鏡", "凹面鏡", "凹透鏡"], c: 2},
+        {q: "水折射率4/3，真空速V1，水速V2，V1:V2=？", a: ["3:4", "4:3", "9:16", "16:9"], c: 1},
+        {q: "貓看魚，魚看貓，何者正確？", a: ["貓看魚深", "貓深魚遠", "貓淺魚遠", "貓淺魚近"], c: 2},
+        {q: "彩虹形成與何有關？(甲)反射 (乙)折射 (丙)干涉 (丁)繞射", a: ["甲乙", "甲丙", "乙丁", "丙丁"], c: 0},
+        {q: "近視聚焦網膜前，應配戴？", a: ["凸面鏡", "凸透鏡", "凹面鏡", "凹透鏡"], c: 3},
+        {q: "哪種儀器沒有使用凸透鏡？", a: ["老花", "顯微鏡", "山路鏡", "望遠鏡"], c: 2},
+        {q: "來自「波動特性」的現象？", a: ["色散", "肥皂彩色", "夕陽紅", "倒影"], c: 1},
+        {q: "干涉實驗改變寬度方法「不包括」？", a: ["變頻率", "變間距", "變屏距", "變亮度"], c: 3},
+        {q: "凹面鏡「不會」出現哪種成像？", a: ["倒立大實", "正立小虛", "正立大虛", "倒立小實"], c: 1},
+        {q: "訊號源放焦點反射平行發出應用了？", a: ["凸透鏡", "凸面鏡", "凹透鏡", "凹面鏡"], c: 3},
+        {q: "內視鏡傳輸資料原理？", a: ["干涉", "疊加", "全反射", "直進性"], c: 2},
+        {q: "透鏡下半部塗黑，屏幕上的像？", a: ["消失", "變正立", "變暗", "剩一半"], c: 2},
+        {q: "圓弧玻璃看魚放大，原理類似？", a: ["凸透鏡", "凹透鏡", "凹面鏡", "凸面鏡"], c: 0},
+        {q: "折射率概念何者錯誤？", a: ["愈大愈慢", "小進大偏法", "密介質指小", "真空最小"], c: 2},
+        {q: "毛玻璃影像扭曲主因？", a: ["不平整折射", "反射", "折射率不均", "色散"], c: 0},
+        {q: "陽光通過三稜鏡色散原因是？", a: ["折射率不同", "染色", "變波長", "材質"], c: 0},
+        {q: "人眼變焦方式？", a: ["變折射率", "變水晶體曲率", "變視網膜距", "修正"], c: 1},
+        {q: "何者「不是」因干涉產生的彩色？", a: ["肥皂泡", "油汙", "光碟", "彩虹"], c: 3}
     ];
 
     let currentIdx = 0;
-    let answers = new Array(quizData.length).fill(null);
+    let score = 0;
+    let hasAnswered = false;
+    let wrongRecords = [];
 
     function render() {
-        const q = quizData[currentIdx];
-        document.getElementById('progress').innerText = `${currentIdx + 1} / ${quizData.length}`;
+        hasAnswered = false;
+        const q = fullQuiz[currentIdx];
+        document.getElementById('progress').innerText = `${currentIdx + 1} / ${fullQuiz.length}`;
         document.getElementById('q-text').innerText = `${currentIdx + 1}. ${q.q}`;
         
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.disabled = true;
+        nextBtn.innerText = currentIdx === fullQuiz.length - 1 ? "查看結算" : "下一題";
+
         const box = document.getElementById('options-box');
         box.innerHTML = '';
+
         q.a.forEach((txt, i) => {
             const div = document.createElement('div');
-            div.className = `option ${answers[currentIdx] === i ? 'selected' : ''}`;
+            div.className = 'option';
             div.innerText = `${String.fromCharCode(65 + i)}. ${txt}`;
-            div.onclick = () => {
-                answers[currentIdx] = i;
-                render();
-            };
+            div.onclick = () => selectOption(div, i);
             box.appendChild(div);
         });
+    }
 
-        document.getElementById('next-btn').innerText = 
-            currentIdx === quizData.length - 1 ? "完成交卷" : "下一題";
+    function selectOption(el, index) {
+        if (hasAnswered) return;
+        hasAnswered = true;
+        
+        const q = fullQuiz[currentIdx];
+        const options = document.querySelectorAll('.option');
+        
+        if (index === q.c) {
+            el.classList.add('correct');
+            score++;
+        } else {
+            el.classList.add('wrong');
+            options[q.c].classList.add('correct'); // 標出正確答案
+            wrongRecords.push({
+                q: q.q,
+                user: q.a[index],
+                correct: q.a[q.c]
+            });
+        }
+        
+        document.getElementById('next-btn').disabled = false;
     }
 
     function nextStep() {
-        if (answers[currentIdx] === null) {
-            alert("請選擇答案！");
-            return;
-        }
-        if (currentIdx < quizData.length - 1) {
+        if (currentIdx < fullQuiz.length - 1) {
             currentIdx++;
             render();
         } else {
-            showResult();
+            showFinal();
         }
     }
 
-    function showResult() {
-        let correct = 0;
-        quizData.forEach((q, i) => { if (answers[i] === q.c) correct++; });
-        const score = Math.round((correct / quizData.length) * 100);
-        
-        document.getElementById('quiz-container').innerHTML = `
-            <div class="score-display">
-                <h2>測驗結算</h2>
-                <div class="score-num">${score}</div>
-                <p>正確題數：${correct} / ${quizData.length}</p>
+    function showFinal() {
+        const finalScore = Math.round((score / fullQuiz.length) * 100);
+        let html = `
+            <div style="text-align:center">
+                <h2>測驗完成</h2>
+                <div class="score-num">${finalScore}</div>
+                <p>正確：${score} / 總計：${fullQuiz.length}</p>
                 <button class="nav-btn" onclick="location.reload()">重新測驗</button>
-            </div>
+                <hr style="margin:20px 0; border:0; border-top:1px solid #ddd;">
+                <h3 style="text-align:left">錯題回顧：</h3>
         `;
+
+        if (wrongRecords.length === 0) {
+            html += `<p style="color:var(--success)">完美！沒有錯題。</p>`;
+        } else {
+            wrongRecords.forEach((item, i) => {
+                html += `
+                    <div class="review-item">
+                        <div class="review-q">${i+1}. ${item.q}</div>
+                        <div class="review-ans">你的答案：<span style="color:var(--danger)">${item.user}</span></div>
+                        <div class="review-ans">正確答案：<span style="color:var(--success)">${item.correct}</span></div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += `</div>`;
+        document.getElementById('quiz-container').innerHTML = html;
     }
 
     render();
